@@ -954,7 +954,7 @@ fn looks_like_windows_uname(os: &str) -> bool {
 
 fn windows_platform_probe_command() -> String {
     windows_powershell_script_command(
-        "[Console]::Out.WriteLine('herdr-windows:' + $env:PROCESSOR_ARCHITECTURE); exit 0",
+        "$arch = if ($env:PROCESSOR_ARCHITEW6432) { $env:PROCESSOR_ARCHITEW6432 } else { $env:PROCESSOR_ARCHITECTURE }; [Console]::Out.WriteLine('herdr-windows:' + $arch); exit 0",
     )
 }
 
@@ -3021,7 +3021,7 @@ mod tests {
             (
                 "platform probe",
                 windows_platform_probe_command(),
-                "[Console]::Out.WriteLine('herdr-windows:' + $env:PROCESSOR_ARCHITECTURE); exit 0",
+                "$arch = if ($env:PROCESSOR_ARCHITEW6432) { $env:PROCESSOR_ARCHITEW6432 } else { $env:PROCESSOR_ARCHITECTURE }; [Console]::Out.WriteLine('herdr-windows:' + $arch); exit 0",
             ),
             (
                 "PATH lookup",
