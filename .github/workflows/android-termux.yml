@@ -1,8 +1,8 @@
 name: Android Termux
 
 # Builds a native Android (bionic, PIE) herdr binary for Termux on aarch64
-# phones. No proot needed: Rust target aarch64-linux-android + cargo-zigbuild
-# (zig as linker) + the vendored libghostty-vt compiled for
+# phones. No proot needed: Rust target aarch64-linux-android linked with the
+# Android NDK clang, zig builds the vendored libghostty-vt for
 # aarch64-linux-android (see build.rs zig_target mapping).
 #
 # Run manually with: gh workflow run android-termux.yml --ref android-termux
@@ -52,8 +52,16 @@ jobs:
         with:
           version: 0.15.2
 
-      - name: Install cargo-zigbuild
-        run: cargo install cargo-zigbuild --locked
+      - name: Install Android NDK
+        uses: nttld/setup-ndk@v1
+        with:
+          ndk-version: r27
+
+      - name: Set Android linker
+        run: |
+          CLANG="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android21-clang"
+          "$CLANG" --version
+          echo "CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER=$CLANG" >> "$GITHUB_ENV"
 
       - name: Cache Rust artifacts
         uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
@@ -64,7 +72,7 @@ jobs:
         run: rm -rf .zig-cache vendor/libghostty-vt/.zig-cache vendor/libghostty-vt/zig-out
 
       - name: Build
-        run: cargo zigbuild --release --locked --target aarch64-linux-android
+        run: cargo build --release --locked --target aarch64-linux-android
 
       - name: Verify Android binary
         run: |
