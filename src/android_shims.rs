@@ -8,6 +8,17 @@ use std::ffi::{CStr, CString};
 use std::os::unix::ffi::OsStrExt;
 use std::ptr;
 
+// Work around Bionic TLS alignment check on ARM64 (needs p_align >= 64,
+// Rust's default TLS is 8). Without this, /system/bin/linker64 aborts with
+// "TLS segment is underaligned: alignment is 8, needs to be at least 64".
+// Use a .tdata variable with 64-byte alignment to bump PT_TLS p_align.
+// See https://github.com/rust-lang/rust/issues/103666.
+#[repr(align(64))]
+struct Align64([u8; 64]);
+#[used]
+#[link_section = ".tdata"]
+static TLS_ALIGN_FIX: Align64 = Align64([0; 64]);
+
 // API 21 bionic has no preadv/pwritev at all (they appeared in API 24), and
 // glibc code pulls in preadv64/pwritev64. Provide all four by emulating
 // vectored I/O with a pread/pwrite loop (handles short reads correctly).
