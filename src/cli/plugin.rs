@@ -1530,7 +1530,7 @@ fn build_platform_supported(
 }
 
 fn current_plugin_platform() -> PluginPlatform {
-    if cfg!(target_os = "linux") {
+    if cfg!(any(target_os = "linux", target_os = "android")) {
         PluginPlatform::Linux
     } else if cfg!(target_os = "macos") {
         PluginPlatform::Macos

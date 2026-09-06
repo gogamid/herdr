@@ -539,7 +539,7 @@ mod tests {
     #[cfg(unix)]
     const OVER_CAP_COMMAND: &str = "head -c 5000 /dev/zero | tr '\\0' x; printf '\\nREADY\\n'";
 
-    #[cfg(any(target_os = "linux", target_os = "macos"))]
+    #[cfg(any(target_os = "linux", target_os = "android", target_os = "macos"))]
     fn unique_temp_path(name: &str) -> std::path::PathBuf {
         let stamp = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
@@ -578,7 +578,7 @@ mod tests {
         ));
     }
 
-    #[cfg(any(target_os = "linux", target_os = "macos"))]
+    #[cfg(any(target_os = "linux", target_os = "android", target_os = "macos"))]
     #[tokio::test(flavor = "current_thread")]
     async fn status_command_timeout_starts_before_task_is_polled() {
         let ran = unique_temp_path("ran-after-timeout");
@@ -665,7 +665,7 @@ mod tests {
         );
     }
 
-    #[cfg(any(target_os = "linux", target_os = "macos"))]
+    #[cfg(any(target_os = "linux", target_os = "android", target_os = "macos"))]
     #[tokio::test(flavor = "current_thread")]
     async fn reload_aborts_an_in_flight_command_task_and_its_descendants() {
         let descendant_started = unique_temp_path("descendant-started");

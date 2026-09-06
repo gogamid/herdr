@@ -2372,7 +2372,7 @@ fn homebrew_release_notes_body_from_manifest(
 // ---------------------------------------------------------------------------
 
 fn platform_target() -> (&'static str, &'static str) {
-    let os = if cfg!(target_os = "linux") {
+    let os = if cfg!(any(target_os = "linux", target_os = "android")) {
         "linux"
     } else if cfg!(target_os = "macos") {
         "macos"

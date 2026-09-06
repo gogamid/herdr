@@ -506,7 +506,7 @@ fn normalize_platforms(
 
 /// Returns the platform the current binary was compiled for.
 fn current_platform() -> PluginPlatform {
-    if cfg!(target_os = "linux") {
+    if cfg!(any(target_os = "linux", target_os = "android")) {
         PluginPlatform::Linux
     } else if cfg!(target_os = "macos") {
         PluginPlatform::Macos

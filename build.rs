@@ -118,14 +118,17 @@ fn main() {
         let cc = env::var("CC_aarch64_linux_android")
             .or_else(|_| env::var("CC"))
             .unwrap_or_else(|_| "aarch64-linux-android21-clang".to_string());
+        println!("cargo:warning=Android TLS fix: compiling with CC={cc} -> {}", obj.display());
         let status = Command::new(&cc)
-            .args(["-c", "-O2", "-fPIC"])
+            .args(["-c", "-O2", "-fPIC", "-fno-emulated-tls", "-v"])
             .arg(manifest_dir.join("android_tls_fix.c"))
             .arg("-o")
             .arg(&obj)
             .status();
         match status {
             Ok(s) if s.success() => {
+                println!("cargo:warning=Android TLS fix object built: {}", obj.display());
+                println!("cargo:rustc-link-arg=-Wl,-u,herdr_tls_align_fix");
                 println!("cargo:rustc-link-arg={}", obj.display());
             }
             Ok(s) => panic!("failed to compile android_tls_fix.c with {cc}: {s}"),

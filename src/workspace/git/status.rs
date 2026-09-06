@@ -350,7 +350,7 @@ mod tests {
         test_support::{run_git, temp_test_dir, write_fake_tracked_repo},
     };
 
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "android"))]
     #[test]
     fn cache_key_from_space_preserves_non_utf8_checkout_path() {
         use std::os::unix::ffi::OsStringExt;

@@ -3937,7 +3937,7 @@ mod tests {
         assert!(semaphore.try_acquire_owned().is_ok());
     }
 
-    #[cfg(any(target_os = "linux", target_os = "macos"))]
+    #[cfg(any(target_os = "linux", target_os = "android", target_os = "macos"))]
     #[tokio::test]
     async fn compression_task_rechecks_history_after_a_read() {
         let suffix = "x".repeat(66);
@@ -3969,7 +3969,7 @@ mod tests {
         .unwrap();
     }
 
-    #[cfg(any(target_os = "linux", target_os = "macos"))]
+    #[cfg(any(target_os = "linux", target_os = "android", target_os = "macos"))]
     #[tokio::test]
     async fn compressed_scrollback_survives_shrink_and_grow_resize() {
         let suffix = "x".repeat(66);

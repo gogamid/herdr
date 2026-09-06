@@ -41,7 +41,7 @@ pub(crate) fn spawn_with_portable_pty(
     })
 }
 
-#[cfg(all(test, target_os = "linux"))]
+#[cfg(all(test, any(target_os = "linux", target_os = "android")))]
 mod tests {
     use super::*;
     use std::sync::{Mutex, OnceLock};

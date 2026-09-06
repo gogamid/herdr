@@ -1477,7 +1477,7 @@ mod tests {
 
     // ---- Process identification (real PTY) ----
 
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "android"))]
     fn open_test_pty() -> portable_pty::PtyPair {
         portable_pty::native_pty_system()
             .openpty(portable_pty::PtySize {
@@ -1489,7 +1489,7 @@ mod tests {
             .expect("failed to open pty")
     }
 
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "android"))]
     #[test]
     fn foreground_job_detects_sleep() {
         use portable_pty::CommandBuilder;
@@ -1521,7 +1521,7 @@ mod tests {
         child.wait().ok();
     }
 
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "android"))]
     #[test]
     fn foreground_job_detects_shell_running_command() {
         use portable_pty::CommandBuilder;
@@ -1557,7 +1557,7 @@ mod tests {
         child.wait().ok();
     }
 
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "android"))]
     #[test]
     fn foreground_job_detects_agent_behind_shell_wrapper() {
         use portable_pty::CommandBuilder;
@@ -1597,7 +1597,7 @@ mod tests {
         );
     }
 
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "android"))]
     #[test]
     fn proc_stat_parsing_handles_spaces_in_comm() {
         // Verify our /proc/pid/stat parser correctly extracts fields

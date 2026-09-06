@@ -391,7 +391,7 @@ mod tests {
         }));
     }
 
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "android"))]
     #[test]
     fn server_daemon_detach_creates_new_session() {
         let mut command = Command::new("sh");

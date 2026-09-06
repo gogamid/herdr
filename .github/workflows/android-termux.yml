@@ -15,6 +15,7 @@ on:
     paths:
       - '.github/workflows/android-termux.yml'
       - 'build.rs'
+      - 'android_tls_fix.c'
       - 'Cargo.toml'
       - 'Cargo.lock'
       - 'src/**'
@@ -73,7 +74,27 @@ jobs:
         run: rm -rf .zig-cache vendor/libghostty-vt/.zig-cache vendor/libghostty-vt/zig-out
 
       - name: Build
-        run: cargo build --release --locked --target aarch64-linux-android
+        run: cargo build --release --locked --target aarch64-linux-android --verbose
+
+      - name: Debug Android TLS
+        if: always()
+        run: |
+          echo "=== OUT_DIR TLS object ==="
+          OBJ=$(find target/aarch64-linux-android -name "android_tls_fix.o" | head -n1)
+          ls -lh "$OBJ" 2>&1
+          echo "--- readelf -S object ---"
+          readelf -S "$OBJ" 2>&1
+          echo "--- readelf -s object ---"
+          readelf -s "$OBJ" 2>&1 | head -n 20
+          echo "--- llvm-readelf object ---"
+          llvm-readelf --sections "$OBJ" 2>&1 | head -n 30
+          echo "=== final binary TLS ==="
+          readelf -l target/aarch64-linux-android/release/herdr 2>&1 | grep -E "TLS|Type|LOAD"
+          readelf -S target/aarch64-linux-android/release/herdr 2>&1 | grep -i tls | head -n 10
+          echo "=== nm TLS symbol ==="
+          llvm-nm target/aarch64-linux-android/release/herdr 2>&1 | grep -i "tls\|herdr_tls" | head -n 20 || nm target/aarch64-linux-android/release/herdr 2>&1 | grep -i "tls\|herdr_tls" | head -n 20
+          echo "=== readelf -l TLS detail ==="
+          readelf -l target/aarch64-linux-android/release/herdr 2>&1 | grep -A2 TLS
 
       - name: Verify Android binary
         run: |
