@@ -107,4 +107,35 @@ fn main() {
     } else {
         println!("cargo:rustc-link-lib=static=ghostty-vt");
     }
+
+    // Android: bump PT_TLS p_align to 64 so Bionic's linker64 doesn't abort.
+    // Rust's default TLS is 8, but ARM64 Bionic requires 64.
+    if target == "aarch64-linux-android" {
+        println!("cargo:rerun-if-changed=android_tls_fix.c");
+        let out_dir = PathBuf::from(env::var("OUT_DIR").expect("OUT_DIR"));
+        let obj = out_dir.join("android_tls_fix.o");
+        // Prefer the NDK clang if set (CI), otherwise fall back to cc/clang.
+        let cc = env::var("CC_aarch64_linux_android")
+            .or_else(|_| env::var("CC"))
+            .unwrap_or_else(|_| "aarch64-linux-android21-clang".to_string());
+        let status = Command::new(&cc)
+            .args(["-c", "-O2", "-fPIC"])
+            .arg(manifest_dir.join("android_tls_fix.c"))
+            .arg("-o")
+            .arg(&obj)
+            .status();
+        match status {
+            Ok(s) if s.success() => {
+                println!("cargo:rustc-link-arg={}", obj.display());
+            }
+            Ok(s) => panic!("failed to compile android_tls_fix.c with {cc}: {s}"),
+            Err(err) if err.kind() == std::io::ErrorKind::NotFound => {
+                // If no Android CC is available (e.g. local non-Android build
+                // probing the build script), just skip — this only matters
+                // when actually linking for Android.
+                println!("cargo:warning=Android CC not found ({cc}), skipping TLS align fix");
+            }
+            Err(err) => panic!("failed to execute {cc} for android_tls_fix.c: {err}"),
+        }
+    }
 }
