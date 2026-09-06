@@ -44,7 +44,10 @@ pub unsafe extern "C" fn openpty(
     winp: *const libc::winsize,
 ) -> libc::c_int {
     if amaster.is_null() || aslave.is_null() {
-        libc::__errno_location().as_mut().map(|e| *e = libc::EINVAL);
+        // bionic's errno is via __errno(); libc crate exposes it differently
+        // per target — just set via std::io::Error's last_os_error indirect
+        // by returning -1 with EINVAL; caller will check errno.
+        unsafe { *libc::__errno() = libc::EINVAL };
         return -1;
     }
 
