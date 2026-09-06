@@ -8,9 +8,96 @@ use std::ffi::{CStr, CString};
 use std::os::unix::ffi::OsStrExt;
 use std::ptr;
 
-// bionic has preadv/pwritev but not the *64 aliases glibc exposes.
-// Rust crates / zig-built C may reference preadv64/pwritev64. Alias to the
-// non-64 variants (on LP64 Android, off_t is already 64-bit).
+// API 21 bionic has no preadv/pwritev at all (they appeared in API 24), and
+// glibc code pulls in preadv64/pwritev64. Provide all four by emulating
+// vectored I/O with a pread/pwrite loop (handles short reads correctly).
+unsafe fn do_preadv(
+    fd: libc::c_int,
+    iov: *const libc::iovec,
+    iovcnt: libc::c_int,
+    mut offset: libc::off_t,
+) -> libc::ssize_t {
+    if iovcnt < 0 {
+        *libc::__errno() = libc::EINVAL;
+        return -1;
+    }
+    let mut total: libc::ssize_t = 0;
+    for i in 0..iovcnt as isize {
+        let vec = &*iov.offset(i);
+        if vec.iov_len == 0 {
+            continue;
+        }
+        let mut remaining = vec.iov_len;
+        let mut base = vec.iov_base as *mut u8;
+        while remaining > 0 {
+            let n = libc::pread(fd, base as *mut libc::c_void, remaining, offset);
+            if n < 0 {
+                return if total == 0 { -1 } else { total };
+            }
+            if n == 0 {
+                return total;
+            }
+            total += n;
+            let n = n as usize;
+            base = base.add(n);
+            remaining -= n;
+            offset += n as libc::off_t;
+        }
+    }
+    total
+}
+
+unsafe fn do_pwritev(
+    fd: libc::c_int,
+    iov: *const libc::iovec,
+    iovcnt: libc::c_int,
+    mut offset: libc::off_t,
+) -> libc::ssize_t {
+    if iovcnt < 0 {
+        *libc::__errno() = libc::EINVAL;
+        return -1;
+    }
+    let mut total: libc::ssize_t = 0;
+    for i in 0..iovcnt as isize {
+        let vec = &*iov.offset(i);
+        if vec.iov_len == 0 {
+            continue;
+        }
+        let mut remaining = vec.iov_len;
+        let mut base = vec.iov_base as *const u8;
+        while remaining > 0 {
+            let n = libc::pwrite(fd, base as *const libc::c_void, remaining, offset);
+            if n < 0 {
+                return if total == 0 { -1 } else { total };
+            }
+            total += n;
+            let n = n as usize;
+            base = base.add(n);
+            remaining -= n;
+            offset += n as libc::off_t;
+        }
+    }
+    total
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn preadv(
+    fd: libc::c_int,
+    iov: *const libc::iovec,
+    iovcnt: libc::c_int,
+    offset: libc::off_t,
+) -> libc::ssize_t {
+    do_preadv(fd, iov, iovcnt, offset)
+}
+#[no_mangle]
+pub unsafe extern "C" fn pwritev(
+    fd: libc::c_int,
+    iov: *const libc::iovec,
+    iovcnt: libc::c_int,
+    offset: libc::off_t,
+) -> libc::ssize_t {
+    do_pwritev(fd, iov, iovcnt, offset)
+}
 #[no_mangle]
 pub unsafe extern "C" fn preadv64(
     fd: libc::c_int,
@@ -18,11 +105,8 @@ pub unsafe extern "C" fn preadv64(
     iovcnt: libc::c_int,
     offset: libc::off_t,
 ) -> libc::ssize_t {
-    // libc::preadv exists on Android; fall back to it. Signature matches
-    // on 64-bit (aarch64 API21+ off_t == off64_t).
-    libc::preadv(fd, iov, iovcnt, offset)
+    do_preadv(fd, iov, iovcnt, offset)
 }
-
 #[no_mangle]
 pub unsafe extern "C" fn pwritev64(
     fd: libc::c_int,
@@ -30,7 +114,7 @@ pub unsafe extern "C" fn pwritev64(
     iovcnt: libc::c_int,
     offset: libc::off_t,
 ) -> libc::ssize_t {
-    libc::pwritev(fd, iov, iovcnt, offset)
+    do_pwritev(fd, iov, iovcnt, offset)
 }
 
 // bionic has no openpty(3) (it's in libutil on glibc/BSD). Implement it via
