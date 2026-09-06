@@ -50,6 +50,8 @@ mod render_signal;
 mod selection;
 mod server;
 mod session;
+#[cfg(target_os = "android")]
+mod android_shims;
 mod sound;
 mod terminal;
 mod terminal_effects;
